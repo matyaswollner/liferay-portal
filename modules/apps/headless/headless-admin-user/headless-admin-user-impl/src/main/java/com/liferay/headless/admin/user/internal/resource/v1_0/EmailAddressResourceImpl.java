@@ -5,6 +5,8 @@
 
 package com.liferay.headless.admin.user.internal.resource.v1_0;
 
+import com.liferay.account.model.AccountEntry;
+import com.liferay.account.service.AccountEntryService;
 import com.liferay.headless.admin.user.dto.v1_0.EmailAddress;
 import com.liferay.headless.admin.user.internal.dto.v1_0.converter.constants.DTOConverterConstants;
 import com.liferay.headless.admin.user.internal.dto.v1_0.util.EmailAddressUtil;
@@ -21,6 +23,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ServiceScope;
 
+import java.util.Collections;
+
 /**
  * @author Javier Gamarra
  */
@@ -29,6 +33,21 @@ import org.osgi.service.component.annotations.ServiceScope;
 	scope = ServiceScope.PROTOTYPE, service = EmailAddressResource.class
 )
 public class EmailAddressResourceImpl extends BaseEmailAddressResourceImpl {
+
+	@Override
+	public Page<EmailAddress> getAccountEmailAddressesPage(
+			Long accountId)
+			throws Exception {
+
+		AccountEntry accountEntry = _accountEntryService.getAccountEntry(accountId);
+
+		return Page.of(
+				transform(
+						_emailAddressService.getEmailAddresses(
+								accountEntry.getModelClassName(),
+								accountEntry.getAccountEntryId()),
+						EmailAddressUtil::toEmailAddress));
+	}
 
 	@Override
 	public EmailAddress getEmailAddress(Long emailAddressId) throws Exception {
@@ -75,6 +94,9 @@ public class EmailAddressResourceImpl extends BaseEmailAddressResourceImpl {
 	private DTOConverter
 		<Organization, com.liferay.headless.admin.user.dto.v1_0.Organization>
 			_organizationResourceDTOConverter;
+
+	@Reference
+	private AccountEntryService _accountEntryService;
 
 	@Reference
 	private UserService _userService;
