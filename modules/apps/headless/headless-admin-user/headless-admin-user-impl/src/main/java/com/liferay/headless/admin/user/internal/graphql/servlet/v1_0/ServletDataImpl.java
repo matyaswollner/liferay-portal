@@ -366,6 +366,11 @@ public class ServletDataImpl implements ServletData {
 							AccountRoleResourceImpl.class,
 							"postAccountAccountRoleUserAccountAssociation"));
 					put(
+						"mutation#createAccountEmailAddressesPageExportBatch",
+						new ObjectValuePair<>(
+							EmailAddressResourceImpl.class,
+							"postAccountEmailAddressesPageExportBatch"));
+					put(
 						"mutation#createOrganizationEmailAddressesPageExportBatch",
 						new ObjectValuePair<>(
 							EmailAddressResourceImpl.class,
@@ -861,6 +866,11 @@ public class ServletDataImpl implements ServletData {
 							AccountRoleResourceImpl.class,
 							"getAccountAccountRolesPage"));
 					put(
+						"query#accountEmailAddresses",
+						new ObjectValuePair<>(
+							EmailAddressResourceImpl.class,
+							"getAccountEmailAddressesPage"));
+					put(
 						"query#emailAddress",
 						new ObjectValuePair<>(
 							EmailAddressResourceImpl.class, "getEmailAddress"));
@@ -1259,6 +1269,11 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							TicketResourceImpl.class,
 							"getUserAccountPasswordResetTicket"));
+					put(
+						"query#Account.emailAddresses",
+						new ObjectValuePair<>(
+							EmailAddressResourceImpl.class,
+							"getAccountEmailAddressesPage"));
 					put(
 						"query#Account.organizationByExternalReferenceCode",
 						new ObjectValuePair<>(

@@ -47,6 +47,14 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface EmailAddressResource {
 
+	public Page<EmailAddress> getAccountEmailAddressesPage(Long accountId)
+		throws Exception;
+
+	public Response postAccountEmailAddressesPageExportBatch(
+			Long accountId, String callbackURL, String contentType,
+			String fieldNames)
+		throws Exception;
+
 	public EmailAddress getEmailAddress(Long emailAddressId) throws Exception;
 
 	public Page<EmailAddress> getOrganizationEmailAddressesPage(
