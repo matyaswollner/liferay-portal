@@ -1319,7 +1319,7 @@ components:
 info:
     description:
         "A Java client JAR is available for use with the group ID 'com.liferay', artifact ID
-        'com.liferay.headless.admin.user.client', and version '4.0.58'."
+        'com.liferay.headless.admin.user.client', and version '4.0.59'."
     license:
         name: "Apache 2.0"
         url: "http://www.apache.org/licenses/LICENSE-2.0.html"
@@ -2567,6 +2567,32 @@ paths:
                     description:
                         "Account successfully replaced"
             tags: ["Account"]
+    "/accounts/{accountId}/email-addresses":
+        get:
+            description:
+                Retrieves the account's email addresses.
+            operationId: getAccountEmailAddressesPage
+            parameters:
+                - in: path
+                  name: accountId
+                  required: true
+                  schema:
+                      format: int64
+                      type: integer
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/EmailAddress"
+                                type: array
+                        application/xml:
+                            schema:
+                                items:
+                                    $ref: "#/components/schemas/EmailAddress"
+                                type: array
+            tags: [ "EmailAddress" ]
     "/accounts/{accountId}/account-groups":
         get:
             parameters:
