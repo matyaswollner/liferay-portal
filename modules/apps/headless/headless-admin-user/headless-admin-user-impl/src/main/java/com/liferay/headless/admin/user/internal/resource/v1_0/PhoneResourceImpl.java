@@ -32,14 +32,10 @@ import org.osgi.service.component.annotations.ServiceScope;
 )
 public class PhoneResourceImpl extends BasePhoneResourceImpl {
 
-
-
 	@Override
-	public Page<Phone> getAccountPhonesPage(
-		Long accountId)
-		throws Exception {
-
-		AccountEntry accountEntry = _accountEntryService.getAccountEntry(accountId);
+	public Page<Phone> getAccountPhonesPage(Long accountId) throws Exception {
+		AccountEntry accountEntry = _accountEntryService.getAccountEntry(
+			accountId);
 
 		return Page.of(
 			transform(
@@ -48,6 +44,7 @@ public class PhoneResourceImpl extends BasePhoneResourceImpl {
 					accountEntry.getAccountEntryId()),
 				PhoneUtil::toPhone));
 	}
+
 	@Override
 	public Page<Phone> getOrganizationPhonesPage(String organizationId)
 		throws Exception {
@@ -81,15 +78,15 @@ public class PhoneResourceImpl extends BasePhoneResourceImpl {
 				PhoneUtil::toPhone));
 	}
 
+	@Reference
+	private AccountEntryService _accountEntryService;
+
 	@Reference(
 		target = DTOConverterConstants.ORGANIZATION_RESOURCE_DTO_CONVERTER
 	)
 	private DTOConverter
 		<Organization, com.liferay.headless.admin.user.dto.v1_0.Organization>
 			_organizationResourceDTOConverter;
-
-	@Reference
-	private AccountEntryService _accountEntryService;
 
 	@Reference
 	private PhoneService _phoneService;

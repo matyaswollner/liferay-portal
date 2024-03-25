@@ -63,22 +63,6 @@ public class PhoneResourceTest extends BasePhoneResourceTestCase {
 	}
 
 	@Override
-	protected Long testGetAccountPhonesPage_getAccountId() throws Exception {
-		return _accountEntry.getAccountEntryId();
-	}
-
-	@Override
-	protected Phone testGetAccountPhonesPage_addPhone(
-		Long accountId, Phone phone)
-		throws Exception {
-
-		return _addPhone(
-			phone, _accountEntry.getModelClassName(),
-			_accountEntry.getAccountEntryId(),
-			ListTypeConstants.ORGANIZATION_PHONE);
-	}
-
-	@Override
 	protected String[] getAdditionalAssertFieldNames() {
 		return new String[] {"extension", "phoneNumber", "primary"};
 	}
@@ -92,6 +76,22 @@ public class PhoneResourceTest extends BasePhoneResourceTestCase {
 				primary = false;
 			}
 		};
+	}
+
+	@Override
+	protected Phone testGetAccountPhonesPage_addPhone(
+			Long accountId, Phone phone)
+		throws Exception {
+
+		return _addPhone(
+			phone, _accountEntry.getModelClassName(),
+			_accountEntry.getAccountEntryId(),
+			ListTypeConstants.ORGANIZATION_PHONE);
+	}
+
+	@Override
+	protected Long testGetAccountPhonesPage_getAccountId() throws Exception {
+		return _accountEntry.getAccountEntryId();
 	}
 
 	@Override
@@ -176,9 +176,9 @@ public class PhoneResourceTest extends BasePhoneResourceTestCase {
 	@DeleteAfterTestRun
 	private Organization _organization;
 
+	private ServiceContext _serviceContext;
+
 	@DeleteAfterTestRun
 	private User _user;
-
-	private ServiceContext _serviceContext;
 
 }
