@@ -47,6 +47,13 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface PhoneResource {
 
+	public Page<Phone> getAccountPhonesPage(Long accountId) throws Exception;
+
+	public Response postAccountPhonesPageExportBatch(
+			Long accountId, String callbackURL, String contentType,
+			String fieldNames)
+		throws Exception;
+
 	public Page<Phone> getOrganizationPhonesPage(String organizationId)
 		throws Exception;
 

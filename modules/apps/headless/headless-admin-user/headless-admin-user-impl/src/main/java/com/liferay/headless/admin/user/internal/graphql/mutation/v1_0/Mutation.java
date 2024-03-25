@@ -1217,6 +1217,21 @@ public class Mutation {
 	}
 
 	@GraphQLField
+	public Response createAccountPhonesPageExportBatch(
+			@GraphQLName("accountId") Long accountId,
+			@GraphQLName("callbackURL") String callbackURL,
+			@GraphQLName("contentType") String contentType,
+			@GraphQLName("fieldNames") String fieldNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_phoneResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			phoneResource -> phoneResource.postAccountPhonesPageExportBatch(
+				accountId, callbackURL, contentType, fieldNames));
+	}
+
+	@GraphQLField
 	public Response createOrganizationPhonesPageExportBatch(
 			@GraphQLName("organizationId") String organizationId,
 			@GraphQLName("callbackURL") String callbackURL,

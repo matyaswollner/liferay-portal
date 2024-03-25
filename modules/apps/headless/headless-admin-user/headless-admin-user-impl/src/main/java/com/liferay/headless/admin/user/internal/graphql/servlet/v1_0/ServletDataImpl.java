@@ -475,6 +475,11 @@ public class ServletDataImpl implements ServletData {
 							OrganizationResourceImpl.class,
 							"postUserAccountByEmailAddress"));
 					put(
+						"mutation#createAccountPhonesPageExportBatch",
+						new ObjectValuePair<>(
+							PhoneResourceImpl.class,
+							"postAccountPhonesPageExportBatch"));
+					put(
 						"mutation#createOrganizationPhonesPageExportBatch",
 						new ObjectValuePair<>(
 							PhoneResourceImpl.class,
@@ -919,6 +924,10 @@ public class ServletDataImpl implements ServletData {
 							OrganizationResourceImpl.class,
 							"getOrganizationOrganizationsPage"));
 					put(
+						"query#accountPhones",
+						new ObjectValuePair<>(
+							PhoneResourceImpl.class, "getAccountPhonesPage"));
+					put(
 						"query#organizationPhones",
 						new ObjectValuePair<>(
 							PhoneResourceImpl.class,
@@ -1235,6 +1244,10 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							AccountGroupResourceImpl.class,
 							"getAccountGroupByExternalReferenceCode"));
+					put(
+						"query#Account.phones",
+						new ObjectValuePair<>(
+							PhoneResourceImpl.class, "getAccountPhonesPage"));
 					put(
 						"query#Organization.webUrls",
 						new ObjectValuePair<>(
