@@ -5,6 +5,8 @@
 
 package com.liferay.headless.admin.user.internal.resource.v1_0;
 
+import com.liferay.account.model.AccountEntry;
+import com.liferay.account.service.AccountEntryService;
 import com.liferay.headless.admin.user.dto.v1_0.Phone;
 import com.liferay.headless.admin.user.internal.dto.v1_0.converter.constants.DTOConverterConstants;
 import com.liferay.headless.admin.user.internal.dto.v1_0.util.PhoneUtil;
@@ -30,6 +32,22 @@ import org.osgi.service.component.annotations.ServiceScope;
 )
 public class PhoneResourceImpl extends BasePhoneResourceImpl {
 
+
+
+	@Override
+	public Page<Phone> getAccountPhonesPage(
+		Long accountId)
+		throws Exception {
+
+		AccountEntry accountEntry = _accountEntryService.getAccountEntry(accountId);
+
+		return Page.of(
+			transform(
+				_phoneService.getPhones(
+					accountEntry.getModelClassName(),
+					accountEntry.getAccountEntryId()),
+				PhoneUtil::toPhone));
+	}
 	@Override
 	public Page<Phone> getOrganizationPhonesPage(String organizationId)
 		throws Exception {
@@ -69,6 +87,9 @@ public class PhoneResourceImpl extends BasePhoneResourceImpl {
 	private DTOConverter
 		<Organization, com.liferay.headless.admin.user.dto.v1_0.Organization>
 			_organizationResourceDTOConverter;
+
+	@Reference
+	private AccountEntryService _accountEntryService;
 
 	@Reference
 	private PhoneService _phoneService;
