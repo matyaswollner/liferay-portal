@@ -136,14 +136,14 @@ public class MarketplaceCommandLineRunner implements CommandLineRunner {
 
 		for (Order order : page.getItems()) {
 			try {
-				ZonedDateTime now = ZonedDateTime.now();
-				ZonedDateTime trialEndDate = ZonedDateTime.parse(
+				ZonedDateTime nowZonedDateTime = ZonedDateTime.now();
+				ZonedDateTime trialEndDateZonedDateTime = ZonedDateTime.parse(
 					order.getCustomFields(
 					).get(
 						"trial-end-date"
 					).toString());
 
-				if (now.isAfter(trialEndDate)) {
+				if (nowZonedDateTime.isAfter(trialEndDateZonedDateTime)) {
 					_postTrialExpire(order.getId());
 
 					if (_log.isInfoEnabled()) {
@@ -154,8 +154,8 @@ public class MarketplaceCommandLineRunner implements CommandLineRunner {
 				}
 
 				if (Objects.equals(
-						now.getDayOfMonth(),
-						trialEndDate.minusDays(
+						nowZonedDateTime.getDayOfMonth(),
+						trialEndDateZonedDateTime.minusDays(
 							1
 						).getDayOfMonth())) {
 
