@@ -67,21 +67,6 @@ public class TrialRestController extends BaseRestController {
 		_deletePortalInstance(orderId);
 	}
 
-	@PostMapping("expire/{orderId}")
-	public void postExpire(@PathVariable long orderId) throws Exception {
-		_updateOrder(null, orderId, _ORDER_STATUS_PENDING);
-
-		_updateOrder(null, orderId, _ORDER_STATUS_PROCESSING);
-
-		_updateOrder(null, orderId, _ORDER_STATUS_COMPLETED);
-
-		deleteTrial(orderId);
-
-		if (_log.isInfoEnabled()) {
-			_log.info("Expired trial " + orderId);
-		}
-	}
-
 	@GetMapping("availability")
 	public String getAvailability() throws Exception {
 		com.liferay.headless.portal.instances.client.pagination.Page
@@ -95,6 +80,50 @@ public class TrialRestController extends BaseRestController {
 		).put(
 			"max", _TRIAL_MAX_INSTANCES
 		).toString();
+	}
+
+	@PostMapping("expire/{orderId}")
+	public void postExpire(@PathVariable long orderId) throws Exception {
+		_updateOrder(null, orderId, _ORDER_STATUS_PENDING);
+
+		_updateOrder(null, orderId, _ORDER_STATUS_PROCESSING);
+
+		_updateOrder(null, orderId, _ORDER_STATUS_COMPLETED);
+
+		delete(orderId);
+
+		if (_log.isInfoEnabled()) {
+			_log.info("Expired trial " + orderId);
+		}
+	}
+
+	@PostMapping("notify-end/{orderId}")
+	public void postNotifyEnd(@PathVariable long orderId) throws Exception {
+		OrderResource orderResource = _getOrderResource();
+		UserAccountResource userAccountResource = _getUserAccountResource();
+
+		Order order = orderResource.getOrder(orderId);
+
+		UserAccount userAccount =
+			userAccountResource.getUserAccountByEmailAddress(
+				order.getCreatorEmailAddress());
+
+		_postNotificationQueueEntry(
+			order.getCreatorEmailAddress(), "TRY-IT-NOW-EXPIRING-ORDER",
+			new HashMapBuilder<String, Object>().put(
+				"%TRIAL_CREATOR_FIRST_NAME%", userAccount.getGivenName()
+			).put(
+				"%TRIAL_END_DATE%",
+				ZonedDateTime.parse(
+					order.getCustomFields(
+					).get(
+						"trial-end-date"
+					).toString()
+				).format(
+					DateTimeFormatter.ofPattern(
+						"MMMM d, yyyy", LocaleUtil.ENGLISH)
+				)
+			).build());
 	}
 
 	@PostMapping("provisioning")
@@ -219,37 +248,6 @@ public class TrialRestController extends BaseRestController {
 				).toString()
 			).put(
 				"%URL%", portalInstance.getVirtualHost()
-			).build());
-	}
-
-	@PostMapping("notify-end/{orderId}")
-	public void postNotifyEnd(@PathVariable long orderId)
-		throws Exception {
-
-		OrderResource orderResource = _getOrderResource();
-		UserAccountResource userAccountResource = _getUserAccountResource();
-
-		Order order = orderResource.getOrder(orderId);
-
-		UserAccount userAccount =
-			userAccountResource.getUserAccountByEmailAddress(
-				order.getCreatorEmailAddress());
-
-		_postNotificationQueueEntry(
-			order.getCreatorEmailAddress(), "TRY-IT-NOW-EXPIRING-ORDER",
-			new HashMapBuilder<String, Object>().put(
-				"%TRIAL_CREATOR_FIRST_NAME%", userAccount.getGivenName()
-			).put(
-				"%TRIAL_END_DATE%",
-				ZonedDateTime.parse(
-					order.getCustomFields(
-					).get(
-						"trial-end-date"
-					).toString()
-				).format(
-					DateTimeFormatter.ofPattern(
-						"MMMM d, yyyy", LocaleUtil.ENGLISH)
-				)
 			).build());
 	}
 
