@@ -34,16 +34,14 @@ public class AggregateKaleoTaskAssignmentSelectorImpl
 			ExecutionContext executionContext)
 		throws PortalException {
 
-		Comparator<KaleoTaskAssignment> comparator = Comparator.comparing(
-			KaleoTaskAssignment::getAssigneeClassPK);
-
-		comparator = comparator.thenComparing(
-			KaleoTaskAssignment::getAssigneeClassName);
-
-		comparator = comparator.thenComparing(KaleoTaskAssignment::getGroupId);
-
 		Set<KaleoTaskAssignment> kaleoTaskAssignmentsSet = new TreeSet<>(
-			comparator);
+			Comparator.comparing(
+				KaleoTaskAssignment::getAssigneeClassPK
+			).thenComparing(
+				KaleoTaskAssignment::getAssigneeClassName
+			).thenComparing(
+				KaleoTaskAssignment::getGroupId
+			));
 
 		for (KaleoTaskAssignment kaleoTaskAssignment : kaleoTaskAssignments) {
 			KaleoTaskAssignmentSelector kaleoTaskAssignmentSelector =
