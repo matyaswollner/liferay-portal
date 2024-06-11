@@ -100,9 +100,10 @@ public class TrialRestController extends BaseRestController {
 	@PostMapping("notify-end/{orderId}")
 	public void postNotifyEnd(@PathVariable long orderId) throws Exception {
 		OrderResource orderResource = _getOrderResource();
-		UserAccountResource userAccountResource = _getUserAccountResource();
 
 		Order order = orderResource.getOrder(orderId);
+
+		UserAccountResource userAccountResource = _getUserAccountResource();
 
 		UserAccount userAccount =
 			userAccountResource.getUserAccountByEmailAddress(
@@ -347,7 +348,7 @@ public class TrialRestController extends BaseRestController {
 				HttpHeaders.AUTHORIZATION, authorization
 			).build();
 
-		NotificationTemplate notificationTemplate;
+		NotificationTemplate notificationTemplate = null;
 
 		try {
 			notificationTemplate =
@@ -357,7 +358,7 @@ public class TrialRestController extends BaseRestController {
 		}
 		catch (Exception exception) {
 			_log.error(
-				"Unable to process template " + externalReferenceCode,
+				"Unable to get notification template " + externalReferenceCode,
 				exception);
 
 			return;
@@ -379,20 +380,11 @@ public class TrialRestController extends BaseRestController {
 			"en_US"
 		);
 
-		String subject = notificationTemplate.getSubject(
-		).get(
-			"en_US"
-		);
-
 		for (Map.Entry<String, String> entry : map.entrySet()) {
 			body = StringUtil.replace(body, entry.getKey(), entry.getValue());
-
-			subject = StringUtil.replace(
-				subject, entry.getKey(), entry.getValue());
 		}
 
 		String finalBody = body;
-		String finalSubject = subject;
 
 		notificationQueueEntry.setBody(() -> finalBody);
 
@@ -420,7 +412,20 @@ public class TrialRestController extends BaseRestController {
 				).build()
 			});
 
+		String subject = notificationTemplate.getSubject(
+		).get(
+			"en_US"
+		);
+
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			subject = StringUtil.replace(
+				subject, entry.getKey(), entry.getValue());
+		}
+
+		String finalSubject = subject;
+
 		notificationQueueEntry.setSubject(() -> finalSubject);
+
 		notificationQueueEntry.setType(notificationTemplate::getType);
 
 		notificationQueueEntryResource.postNotificationQueueEntry(
