@@ -10,10 +10,12 @@ import com.liferay.portal.kernel.upgrade.BaseExternalReferenceCodeUpgradeProcess
 /**
  * @author Matyas Wollner
  */
+public class UpgradeEmailAddressExternalReferenceCode
+	extends BaseExternalReferenceCodeUpgradeProcess {
 
-public class UpgradeEmailAddressExternalReferenceCode extends BaseExternalReferenceCodeUpgradeProcess {
 	@Override
 	protected String[][] getTableAndPrimaryKeyColumnNames() {
 		return new String[][] {{"EmailAddress", "emailAddressId"}};
 	}
+
 }
