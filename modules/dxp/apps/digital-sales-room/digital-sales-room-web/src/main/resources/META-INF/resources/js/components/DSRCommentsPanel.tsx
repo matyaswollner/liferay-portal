@@ -18,6 +18,20 @@ import DigitalSalesRoomService, {
 	TCommentDTO,
 } from '../commons/DigitalSalesRoomService';
 
+function toastSuccess() {
+	openToast({
+		message: Liferay.Language.get('your-request-completed-successfully'),
+		type: 'success',
+	});
+}
+
+function toastError(error: any) {
+	openToast({
+		message: (error as Error).message,
+		type: 'danger',
+	});
+}
+
 function formatDate(date: string, languageTag: string): string {
 	return (
 		date &&
@@ -35,9 +49,11 @@ function formatDate(date: string, languageTag: string): string {
 
 function DSRCommentsPanel({roomId}: {roomId: number}) {
 	const [comments, setComments] = useState<Array<TCommentDTO>>([]);
-	const [commentToEditId, setCommentToEditId] = useState<number | undefined>(
-		undefined
+
+	const [editingCommentId, setEditingCommentId] = useState<number | null>(
+		null
 	);
+
 	const [page, setPage] = useState(1);
 	const [reload, setReload] = useState(0);
 	const [showLoadMore, setShowLoadMore] = useState(false);
@@ -74,12 +90,7 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 				throw new Error(response.error);
 			}
 
-			openToast({
-				message: Liferay.Language.get(
-					'your-request-completed-successfully'
-				),
-				type: 'success',
-			});
+			toastSuccess();
 
 			setComments((prevState) =>
 				prevState.filter((item) => item.id !== commentId)
@@ -94,49 +105,33 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 					return prevPage;
 				}
 			});
-
-			if (commentId === commentToEditId) {
-				setCommentToEditId(undefined);
-			}
 		}
 		catch (error) {
-			openToast({
-				message: (error as Error).message,
-				type: 'danger',
-			});
+			toastError(error);
 		}
 	};
 
-	const handleEditComment = async (
-		comment: string,
-		id: number,
-		roomId: number
-	) => {
+	const handleEditComment = async (text: string, id: number) => {
 		try {
 			const data =
 				await DigitalSalesRoomService.patchDigitalSalesRoomComment(
 					id,
 					roomId,
-					comment
+					text
 				);
 
 			setComments((prevState) =>
 				prevState.map((item) => (item.id === id ? data : item))
 			);
-			setCommentToEditId(undefined);
 
-			openToast({
-				message: Liferay.Language.get(
-					'your-request-completed-successfully'
-				),
-				type: 'success',
-			});
+			toastSuccess();
+
+			return data;
 		}
 		catch (error) {
-			openToast({
-				message: (error as Error).message,
-				type: 'danger',
-			});
+			toastError(error);
+
+			throw error;
 		}
 	};
 
@@ -161,18 +156,10 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 				}
 			});
 
-			openToast({
-				message: Liferay.Language.get(
-					'your-request-completed-successfully'
-				),
-				type: 'success',
-			});
+			toastSuccess();
 		}
 		catch (error) {
-			openToast({
-				message: (error as Error).message,
-				type: 'danger',
-			});
+			toastError(error);
 		}
 	};
 
@@ -184,11 +171,13 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 						{comments.map((comment) => (
 							<DSRCommentNode
 								comment={comment}
+								editingCommentId={editingCommentId}
+								isChild={false}
 								key={comment.id}
-								onDelete={() => handleDeleteComment(comment.id)}
-								onEdit={async (commentId: number) => {
-									setCommentToEditId(commentId);
-								}}
+								onDelete={handleDeleteComment}
+								onEdit={handleEditComment}
+								roomId={roomId}
+								setEditingCommentId={setEditingCommentId}
 							/>
 						))}
 					</ul>
@@ -220,18 +209,9 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 				)}
 			</div>
 			<DSRCommentEditor
-				commentText={
-					commentToEditId
-						? comments.find(
-								(comment) => comment.id === commentToEditId
-							)?.text || ''
-						: ''
-				}
-				onEdit={(commentText, commentId) =>
-					handleEditComment(commentText, commentId, roomId)
-				}
-				onSave={(comment) => handleSaveComment(comment, roomId)}
-				originalCommentId={commentToEditId}
+				commentText=""
+				isChildEditor={false}
+				onSubmit={(comment) => handleSaveComment(comment, roomId)}
 			/>
 		</>
 	);
@@ -239,19 +219,150 @@ function DSRCommentsPanel({roomId}: {roomId: number}) {
 
 function DSRCommentNode({
 	comment,
+	editingCommentId,
+	isChild,
 	onDelete,
 	onEdit,
+	roomId,
+	setEditingCommentId,
 }: {
 	comment: TCommentDTO;
+	isChild: boolean;
 	onDelete: (commentId: number) => Promise<void>;
-	onEdit: (commentId: number) => Promise<void>;
+	onEdit: (text: string, commentId: number) => Promise<TCommentDTO>;
+	roomId: number;
+	editingCommentId: number | null;
+	setEditingCommentId: (id: number | null) => void;
 }) {
+	type Status = 'empty' | 'show' | 'show-more';
+
 	const isOwner =
 		comment.creator.id === Number(Liferay.ThemeDisplay.getUserId());
 
+	const [showReplies, setShowReplies] = useState(false);
+	const [replies, setReplies] = useState<Array<TCommentDTO>>([]);
+	const [showReplyForm, setShowReplyForm] = useState(false);
+	const [page, setPage] = useState(1);
+	const [buttonStatus, setButtonStatus] = useState<Status>(
+		comment.numberOfComments > 0 ? 'show' : 'empty'
+	);
+	const [reload, setReload] = useState(0);
+	const isEditing = editingCommentId === comment.id;
+
+	const handleSaveReply = async (
+		text: string,
+		parentCommentId: number,
+		roomId: number
+	) => {
+		try {
+			const data =
+				await DigitalSalesRoomService.postDigitalSalesRoomComment(
+					roomId,
+					text,
+					parentCommentId
+				);
+			const newLength = replies.length + 1;
+
+			if (showReplies) {
+				setReplies((prevState) => {
+					if (newLength <= 5 || page > 1) {
+						return [data, ...prevState];
+					}
+					else {
+						setReload((prev) => prev + 1);
+
+						return prevState;
+					}
+				});
+			}
+			else {
+				setShowReplies(true);
+			}
+
+			setShowReplyForm(false);
+
+			if (newLength > 5) {
+				setButtonStatus('show-more');
+			}
+			else {
+				setButtonStatus('empty');
+			}
+
+			toastSuccess();
+		}
+		catch (error) {
+			toastError(error);
+		}
+	};
+
+	const handleDeleteReply = async (replyId: number) => {
+		await onDelete(replyId);
+
+		setReplies((prev) => prev.filter((reply) => reply.id !== replyId));
+
+		setPage((prevPage) => {
+			if (prevPage !== 1) {
+				return 1;
+			}
+			else {
+				setReload((prev) => prev + 1);
+
+				return prevPage;
+			}
+		});
+	};
+
+	const handleEditReply = async (text: string, commentId: number) => {
+		const data = await onEdit(text, commentId);
+
+		setReplies((prevState) => {
+			return prevState.map((item) =>
+				item.id === commentId ? data : item
+			);
+		});
+
+		toastSuccess();
+
+		return data;
+	};
+
+	useEffect(() => {
+		if (!showReplies) {
+			return;
+		}
+
+		DigitalSalesRoomService.getComments(roomId, page, 5, comment.id)
+			.then((data) => {
+				setReplies((prevState) => {
+					if (page === 1) {
+						return data.items;
+					}
+
+					return prevState.concat(data.items);
+				});
+				if (page < data.lastPage) {
+					setButtonStatus('show-more');
+				}
+				else {
+					setButtonStatus('empty');
+				}
+			})
+			.catch((error) => {
+				openToast({
+					message: (error as Error).message,
+					type: 'danger',
+				});
+			});
+	}, [showReplies, roomId, comment.id, page, reload]);
+
 	return (
 		<>
-			<li className={classNames('list-unstyled border-bottom pb-3')}>
+			<li
+				className={classNames('list-unstyled pb-3', {
+					'border-bottom': !isChild,
+					'dsr-comment-child': isChild,
+				})}
+			>
 				<article>
 					<div className="autofit-padded autofit-row mb-1 pt-2">
 						<div className="pl-0 pt-1">
@@ -280,14 +391,13 @@ function DSRCommentNode({
 							</time>
 						</header>
 
-						{isOwner && (
+						{isOwner && !isEditing && (
 							<ClayDropDownWithItems
 								items={[
 									{
 										label: Liferay.Language.get('edit'),
-										onClick: async () => {
-											await onEdit(comment.id);
-										},
+										onClick: () =>
+											setEditingCommentId(comment.id),
 										symbolLeft: 'pencil',
 									},
 									{
@@ -313,10 +423,91 @@ function DSRCommentNode({
 						)}
 					</div>
 
-					<pre className="dsr-comment-body my-3 text-3">
-						{comment.text}
-					</pre>
+					{isEditing ? (
+						<DSRCommentEditor
+							commentText={comment.text}
+							isChildEditor
+							onCancel={() => setEditingCommentId(null)}
+							onSubmit={async (text) => {
+								if (isChild) {
+									await handleEditReply(text, comment.id);
+								}
+								else {
+									await onEdit(text, comment.id);
+								}
+
+								setEditingCommentId(null);
+							}}
+						/>
+					) : (
+						<pre className="dsr-comment-body my-3 text-3">
+							{comment.text}
+						</pre>
+					)}
 				</article>
+
+				{!isChild && (
+					<ClayButton
+						borderless
+						displayType="secondary"
+						onClick={() => setShowReplyForm(true)}
+						size="xs"
+					>
+						{Liferay.Language.get('reply')}
+					</ClayButton>
+				)}
+
+				{showReplies && !!replies.length ? (
+					<ul className="pl-0">
+						{replies.map((child: TCommentDTO) => (
+							<DSRCommentNode
+								comment={child}
+								editingCommentId={editingCommentId}
+								isChild
+								key={child.id}
+								onDelete={handleDeleteReply}
+								onEdit={handleEditReply}
+								roomId={roomId}
+								setEditingCommentId={setEditingCommentId}
+							/>
+						))}
+					</ul>
+				) : null}
+
+				{buttonStatus === 'show' && (
+					<ClayButton
+						className="btn-block"
+						data-qa-id="showRepliesButton"
+						displayType="secondary"
+						onClick={() => setShowReplies(true)}
+						size="xs"
+					>
+						Show replies
+					</ClayButton>
+				)}
+
+				{buttonStatus === 'show-more' && (
+					<ClayButton
+						className="btn-block"
+						data-qa-id="showMoreRepliesButton"
+						displayType="secondary"
+						onClick={() => setPage((prev) => prev + 1)}
+						size="xs"
+					>
+						Show more replies
+					</ClayButton>
+				)}
+
+				{showReplyForm && (
+					<DSRCommentEditor
+						commentText=""
+						isChildEditor
+						onCancel={() => setShowReplyForm(false)}
+						onSubmit={(childComment) =>
+							handleSaveReply(childComment, comment.id, roomId)
+						}
+					/>
+				)}
 			</li>
 		</>
 	);
@@ -324,14 +515,14 @@ function DSRCommentNode({
 
 function DSRCommentEditor({
 	commentText,
-	onEdit,
-	onSave,
-	originalCommentId,
+	isChildEditor,
+	onCancel,
+	onSubmit,
 }: {
 	commentText: string;
-	onEdit: (comment: string, commentId: number) => Promise<void>;
-	onSave: (comment: string) => Promise<void>;
-	originalCommentId?: number;
+	isChildEditor: boolean;
+	onSubmit: (comment: string) => Promise<void>;
+	onCancel?: () => void;
 }) {
 	const [comment, setComment] = useState(commentText);
 	const [disabled, setDisabled] = useState<boolean>(false);
@@ -341,15 +532,24 @@ function DSRCommentEditor({
 	}, [commentText]);
 
 	return (
-		<div className="dsr-comment-editor">
-			<div className="py-2">
-				<strong>{Liferay.Language.get('add-comment')}</strong>
-			</div>
+		<div
+			className={classNames('dsr-comment-editor', {
+				'dsr-comment-editor--fixed': !isChildEditor,
+				'dsr-comment-editor--inline': isChildEditor,
+			})}
+		>
+			{!isChildEditor && (
+				<div className="py-2">
+					<strong>{Liferay.Language.get('add-comment')}</strong>
+				</div>
+			)}
 
 			<ClayInput
 				className="form-control form-control-sm"
 				component="textarea"
-				data-qa-id="commentTextarea"
+				data-qa-id={
+					isChildEditor ? 'editCommentTextarea' : 'commentTextarea'
+				}
 				onChange={(event) => {
 					setComment(event.target.value);
 				}}
@@ -359,16 +559,12 @@ function DSRCommentEditor({
 
 			<div className="my-3">
 				<ClayButton
+					data-qa-id={isChildEditor ? 'editSave' : 'createSave'}
 					disabled={disabled || !comment.trim()}
 					onClick={async () => {
 						setDisabled(true);
 						try {
-							if (originalCommentId !== undefined) {
-								await onEdit(comment.trim(), originalCommentId);
-							}
-							else {
-								await onSave(comment.trim());
-							}
+							await onSubmit(comment.trim());
 							setComment('');
 						}
 						finally {
@@ -386,6 +582,7 @@ function DSRCommentEditor({
 					displayType="secondary"
 					onClick={() => {
 						setComment('');
+						onCancel?.();
 					}}
 					size="sm"
 				>

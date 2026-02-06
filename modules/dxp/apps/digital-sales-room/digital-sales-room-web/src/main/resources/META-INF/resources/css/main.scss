@@ -10,9 +10,24 @@
 }
 
 .dsr-comment-editor {
+	width: calc(320px - 3rem);
+}
+
+.dsr-comment-editor--fixed {
 	bottom: 0;
 	position: fixed;
-	width: calc(320px - 3rem);
+}
+
+.dsr-comment-editor--inline {
+	position: static;
+}
+
+.dsr-comment-child {
+	border-left: 1px solid gray;
+	font-size: 0.875rem;
+	margin-left: 1.5rem;
+	opacity: 0.95;
+	padding-left: 1rem;
 }
 
 .dsr-comments-content {

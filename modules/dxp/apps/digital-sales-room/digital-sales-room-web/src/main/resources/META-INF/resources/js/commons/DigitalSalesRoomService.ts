@@ -225,10 +225,20 @@ async function getChannels(channelName = ''): Promise<TChannelsDTO> {
 
 async function getDigitalSalesRoomComments(
 	digitalSalesRoomId: number,
-	page: number = 1
+	page: number = 1,
+	pageSize: number = 20,
+	parentCommentId?: number
 ): Promise<TCommentsDTO> {
+	const params = new URLSearchParams({
+		page: String(page),
+		pageSize: String(pageSize),
+		sort: 'dateCreated:desc',
+		...(parentCommentId !== undefined && {
+			parentCommentId: String(parentCommentId),
+		}),
+	});
 	const {data, error} = await ApiHelper.get(
-		`${PATH}/${digitalSalesRoomId}/comments?page=${page}&sort=dateCreated:desc`
+		`${PATH}/${digitalSalesRoomId}/comments?${params.toString()}`
 	);
 
 	if (data) {
@@ -371,12 +381,14 @@ async function patchDigitalSalesRoomTemplate(
 
 async function postDigitalSalesRoomComment(
 	digitalSalesRoomId: number,
-	text: string
+	text: string,
+	parentCommentId?: number
 ): Promise<TCommentDTO> {
 	const {data, error} = await ApiHelper.post(
 		`${PATH}/${digitalSalesRoomId}/comments`,
 		{
 			text,
+			parentCommentId,
 		}
 	);
 

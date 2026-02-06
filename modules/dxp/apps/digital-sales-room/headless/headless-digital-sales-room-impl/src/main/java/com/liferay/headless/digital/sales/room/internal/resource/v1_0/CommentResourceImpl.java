@@ -45,6 +45,7 @@ import com.liferay.portal.vulcan.util.SearchUtil;
 
 import jakarta.ws.rs.core.MultivaluedMap;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.osgi.service.component.annotations.Component;
@@ -94,8 +95,8 @@ public class CommentResourceImpl extends BaseCommentResourceImpl {
 
 	@Override
 	public Page<Comment> getDigitalSalesRoomCommentsPage(
-			Long digitalSalesRoomId, String search, Pagination pagination,
-			Sort[] sorts)
+			Long digitalSalesRoomId, Long parentCommentId, String search,
+			Pagination pagination, Sort[] sorts)
 		throws Exception {
 
 		if (!FeatureFlagManagerUtil.isEnabled(
@@ -129,7 +130,10 @@ public class CommentResourceImpl extends BaseCommentResourceImpl {
 				booleanFilter.add(
 					new TermFilter(
 						"parentMessageId",
-						String.valueOf(discussionComment.getCommentId())),
+						String.valueOf(
+							Objects.requireNonNullElseGet(
+								parentCommentId,
+								discussionComment::getCommentId))),
 					BooleanClauseOccur.MUST);
 			},
 			null, MBMessage.class.getName(), search, pagination,
@@ -209,6 +213,17 @@ public class CommentResourceImpl extends BaseCommentResourceImpl {
 		ObjectEntry objectEntry = _objectEntryLocalService.getObjectEntry(
 			group.getExternalReferenceCode(), group.getGroupId(),
 			objectDefinition.getObjectDefinitionId());
+
+		if (comment.getParentCommentId() != null) {
+			return _toComment(
+				_commentManager.fetchComment(
+					_commentManager.addComment(
+						StringPool.BLANK, contextUser.getUserId(),
+						objectDefinition.getClassName(),
+						objectEntry.getObjectEntryId(), StringPool.BLANK,
+						comment.getParentCommentId(), StringPool.BLANK,
+						comment.getText(), _createServiceContextFunction())));
+		}
 
 		return _toComment(
 			_commentManager.fetchComment(
