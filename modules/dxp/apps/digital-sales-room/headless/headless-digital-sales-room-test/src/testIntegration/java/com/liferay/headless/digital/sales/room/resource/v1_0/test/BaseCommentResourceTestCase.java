@@ -217,7 +217,7 @@ public abstract class BaseCommentResourceTestCase {
 			testGetDigitalSalesRoomCommentsPage_getIrrelevantDigitalSalesRoomId();
 
 		Page<Comment> page = commentResource.getDigitalSalesRoomCommentsPage(
-			digitalSalesRoomId, null, Pagination.of(1, 10), null);
+			digitalSalesRoomId, null, null, Pagination.of(1, 10), null);
 
 		long totalCount = page.getTotalCount();
 
@@ -227,7 +227,7 @@ public abstract class BaseCommentResourceTestCase {
 					irrelevantDigitalSalesRoomId, randomIrrelevantComment());
 
 			page = commentResource.getDigitalSalesRoomCommentsPage(
-				irrelevantDigitalSalesRoomId, null,
+				irrelevantDigitalSalesRoomId, null, null,
 				Pagination.of(1, (int)totalCount + 1), null);
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
@@ -246,7 +246,7 @@ public abstract class BaseCommentResourceTestCase {
 			digitalSalesRoomId, randomComment());
 
 		page = commentResource.getDigitalSalesRoomCommentsPage(
-			digitalSalesRoomId, null, Pagination.of(1, 10), null);
+			digitalSalesRoomId, null, null, Pagination.of(1, 10), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -277,7 +277,7 @@ public abstract class BaseCommentResourceTestCase {
 
 		Page<Comment> commentsPage =
 			commentResource.getDigitalSalesRoomCommentsPage(
-				digitalSalesRoomId, null, null, null);
+				digitalSalesRoomId, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(commentsPage.getTotalCount());
 
@@ -297,7 +297,7 @@ public abstract class BaseCommentResourceTestCase {
 		if (totalCount >= (pageSizeLimit - 2)) {
 			Page<Comment> page1 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -309,7 +309,7 @@ public abstract class BaseCommentResourceTestCase {
 
 			Page<Comment> page2 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -319,7 +319,7 @@ public abstract class BaseCommentResourceTestCase {
 
 			Page<Comment> page3 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(
 						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
 						pageSizeLimit),
@@ -330,8 +330,8 @@ public abstract class BaseCommentResourceTestCase {
 		else {
 			Page<Comment> page1 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null, Pagination.of(1, totalCount + 2),
-					null);
+					digitalSalesRoomId, null, null,
+					Pagination.of(1, totalCount + 2), null);
 
 			List<Comment> comments1 = (List<Comment>)page1.getItems();
 
@@ -340,8 +340,8 @@ public abstract class BaseCommentResourceTestCase {
 
 			Page<Comment> page2 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null, Pagination.of(2, totalCount + 2),
-					null);
+					digitalSalesRoomId, null, null,
+					Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
 
@@ -351,7 +351,7 @@ public abstract class BaseCommentResourceTestCase {
 
 			Page<Comment> page3 =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(comment1, (List<Comment>)page3.getItems());
@@ -479,12 +479,12 @@ public abstract class BaseCommentResourceTestCase {
 			digitalSalesRoomId, comment2);
 
 		Page<Comment> page = commentResource.getDigitalSalesRoomCommentsPage(
-			digitalSalesRoomId, null, null, null);
+			digitalSalesRoomId, null, null, null, null);
 
 		for (EntityField entityField : entityFields) {
 			Page<Comment> ascPage =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(1, (int)page.getTotalCount() + 1),
 					entityField.getName() + ":asc");
 
@@ -493,7 +493,7 @@ public abstract class BaseCommentResourceTestCase {
 
 			Page<Comment> descPage =
 				commentResource.getDigitalSalesRoomCommentsPage(
-					digitalSalesRoomId, null,
+					digitalSalesRoomId, null, null,
 					Pagination.of(1, (int)page.getTotalCount() + 1),
 					entityField.getName() + ":desc");
 

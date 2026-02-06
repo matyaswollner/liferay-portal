@@ -43,13 +43,13 @@ public interface CommentResource {
 		throws Exception;
 
 	public Page<Comment> getDigitalSalesRoomCommentsPage(
-			Long digitalSalesRoomId, String search, Pagination pagination,
-			String sortString)
+			Long digitalSalesRoomId, Long parentCommentId, String search,
+			Pagination pagination, String sortString)
 		throws Exception;
 
 	public HttpInvoker.HttpResponse getDigitalSalesRoomCommentsPageHttpResponse(
-			Long digitalSalesRoomId, String search, Pagination pagination,
-			String sortString)
+			Long digitalSalesRoomId, Long parentCommentId, String search,
+			Pagination pagination, String sortString)
 		throws Exception;
 
 	public Comment patchDigitalSalesRoomComment(
@@ -286,13 +286,14 @@ public interface CommentResource {
 		}
 
 		public Page<Comment> getDigitalSalesRoomCommentsPage(
-				Long digitalSalesRoomId, String search, Pagination pagination,
-				String sortString)
+				Long digitalSalesRoomId, Long parentCommentId, String search,
+				Pagination pagination, String sortString)
 			throws Exception {
 
 			HttpInvoker.HttpResponse httpResponse =
 				getDigitalSalesRoomCommentsPageHttpResponse(
-					digitalSalesRoomId, search, pagination, sortString);
+					digitalSalesRoomId, parentCommentId, search, pagination,
+					sortString);
 
 			String content = httpResponse.getContent();
 
@@ -355,8 +356,8 @@ public interface CommentResource {
 
 		public HttpInvoker.HttpResponse
 				getDigitalSalesRoomCommentsPageHttpResponse(
-					Long digitalSalesRoomId, String search,
-					Pagination pagination, String sortString)
+					Long digitalSalesRoomId, Long parentCommentId,
+					String search, Pagination pagination, String sortString)
 			throws Exception {
 
 			HttpInvoker httpInvoker = HttpInvoker.newHttpInvoker();
@@ -379,6 +380,11 @@ public interface CommentResource {
 			}
 
 			httpInvoker.httpMethod(HttpInvoker.HttpMethod.GET);
+
+			if (parentCommentId != null) {
+				httpInvoker.parameter(
+					"parentCommentId", String.valueOf(parentCommentId));
+			}
 
 			if (search != null) {
 				httpInvoker.parameter("search", String.valueOf(search));

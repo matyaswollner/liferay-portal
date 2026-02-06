@@ -48,7 +48,8 @@ public interface CommentResource {
 		throws Exception;
 
 	public Page<Comment> getDigitalSalesRoomCommentsPage(
-			Long digitalSalesRoomId, String search, Pagination pagination,
+			Long digitalSalesRoomId, Long parentCommentId, String search,
+			Pagination pagination,
 			com.liferay.portal.kernel.search.Sort[] sorts)
 		throws Exception;
 
