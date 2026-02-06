@@ -532,6 +532,11 @@ paths:
                     schema:
                         type: integer
                 -   in: query
+                    name: parentCommentId
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
                     name: search
                     schema:
                         type: string
