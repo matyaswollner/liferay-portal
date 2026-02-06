@@ -582,10 +582,10 @@ test(
 		await waitForAlert(page);
 
 		await expect(
-			editDigitalSalesRoomPage.commentActionsButton
+			editDigitalSalesRoomPage.commentActionsButton(comment)
 		).toBeVisible();
 
-		await editDigitalSalesRoomPage.commentActionsButton.click();
+		await editDigitalSalesRoomPage.commentActionsButton(comment).click();
 		await editDigitalSalesRoomPage.commentDeleteButton.click();
 
 		await waitForAlert(page);
@@ -639,21 +639,95 @@ test(
 
 		await waitForAlert(page);
 
-		await editDigitalSalesRoomPage.commentActionsButton.click();
+		await editDigitalSalesRoomPage.commentActionsButton(comment).click();
 		await editDigitalSalesRoomPage.commentEditButton.click();
 
-		await expect(editDigitalSalesRoomPage.commentTextarea).toHaveValue(
+		await expect(editDigitalSalesRoomPage.editCommentTextarea).toHaveValue(
 			comment
 		);
 
 		const comment2 = getRandomString();
 
-		await editDigitalSalesRoomPage.commentTextarea.fill(comment2);
-		await editDigitalSalesRoomPage.commentSaveButton.click();
+		await editDigitalSalesRoomPage.editCommentTextarea.fill(comment2);
+		await editDigitalSalesRoomPage.commentEditSaveButton.click();
 
 		await waitForAlert(page);
 
 		await expect(page.getByText(comment)).not.toBeVisible();
 		await expect(page.getByText(comment2)).toBeVisible();
+	}
+);
+
+test(
+	'Add reply to a comment',
+	{tag: '@LPD-76076'},
+	async ({digitalSalesRoomsPage, editDigitalSalesRoomPage, page}) => {
+
+		// Create Room
+
+		const roomName = `A${getRandomInt()}`;
+
+		await digitalSalesRoomsPage.goto();
+
+		await digitalSalesRoomsPage.digitalSalesRoomsTable.newButton.click();
+
+		await editDigitalSalesRoomPage.addDigitalSalesRoom({
+			banner: path.join(__dirname, '/dependencies/liferay.png'),
+			roomName,
+		});
+
+		await digitalSalesRoomsPage.goto();
+
+		await expect(
+			digitalSalesRoomsPage.digitalSalesRoomsTable.cell(roomName)
+		).toBeVisible();
+		await expect(async () => {
+			await (
+				await digitalSalesRoomsPage.digitalSalesRoomsTable.rowActions(
+					roomName,
+					0
+				)
+			).click();
+			await expect(digitalSalesRoomsPage.editMenuItem).toBeVisible({
+				timeout: 200,
+			});
+		}).toPass({timeout: 1000});
+
+		await digitalSalesRoomsPage.editMenuItem.click();
+
+		await expect(editDigitalSalesRoomPage.onboardingMenuItem).toBeVisible();
+
+		// Create Root comment
+
+		await editDigitalSalesRoomPage.commentsButton.click();
+
+		const comment = getRandomString();
+
+		await editDigitalSalesRoomPage.commentTextarea.fill(comment);
+		await editDigitalSalesRoomPage.commentSaveButton.click();
+
+		await waitForAlert(page);
+
+		// Create Reply
+
+		await editDigitalSalesRoomPage.replyButton.click();
+
+		const commentReply = getRandomString();
+
+		await editDigitalSalesRoomPage.editCommentTextarea.fill(commentReply);
+		await editDigitalSalesRoomPage.commentEditSaveButton.click();
+
+		await waitForAlert(page);
+
+		await expect(page.getByText(commentReply)).toBeVisible();
+
+		await editDigitalSalesRoomPage
+			.commentActionsButton(commentReply)
+			.click();
+		await editDigitalSalesRoomPage.commentDeleteButton.click();
+
+		await waitForAlert(page);
+
+		await expect(page.getByText(commentReply)).not.toBeVisible();
 	}
 );

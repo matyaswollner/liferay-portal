@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {cleanup, render, screen, waitFor} from '@testing-library/react';
+import {cleanup, render, screen, waitFor, within} from '@testing-library/react';
 
 // @ts-ignore
 
@@ -292,16 +292,362 @@ describe('DSRCommentsPanel', () => {
 			screen.getByRole('menuitem', {name: /edit/i}).click();
 		});
 
-		await setFieldValue(screen.getByTestId('commentTextarea'), 'edited');
+		await setFieldValue(
+			screen.getByTestId('editCommentTextarea'),
+			'edited'
+		);
 
 		await waitFor(() => {
-			screen.getByRole('button', {name: 'save'}).click();
+			screen.getByTestId('editSave').click();
 		});
 
 		expect(spyOnPatchComment).toBeCalledWith(101, 100, 'edited');
 		await waitFor(() => {
-			expect(screen.getByTestId('commentTextarea')).toHaveValue('');
+			expect(
+				screen.queryByTestId('editCommentTextarea')
+			).not.toBeInTheDocument();
 			expect(screen.getByText('edited')).toBeInTheDocument();
+		});
+	});
+
+	it('Can add a reply to a comment', async () => {
+		const spyOnGetComments = jest.spyOn(
+			DigitalSalesRoomService,
+			'getComments'
+		);
+
+		const spyOnPostComment = jest.spyOn(
+			DigitalSalesRoomService,
+			'postDigitalSalesRoomComment'
+		);
+
+		fetchMock.get(
+			/headless-digital-sales-room\/.*\/digital-sales-rooms\/.*\/comments.*/i,
+			() => {
+				return {
+					items: [
+						{
+							creator: {
+								id: 102,
+								name: 'Author 1',
+							},
+							dateCreated: new Date(),
+							id: 101,
+							text: 'Comment 1',
+							numberOfComments: 0,
+						},
+					],
+					lastPage: 1,
+				};
+			}
+		);
+
+		renderComponent(100);
+
+		expect(spyOnGetComments).toBeCalledTimes(1);
+		expect(spyOnGetComments).toBeCalledWith(100, 1);
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole('button', {name: /reply/i})
+			).toBeInTheDocument();
+		});
+
+		await waitFor(() => {
+			screen.getByRole('button', {name: /reply/i}).click();
+		});
+
+		expect(screen.getByTestId('editCommentTextarea')).toBeInTheDocument();
+
+		await setFieldValue(screen.getByTestId('editCommentTextarea'), 'reply');
+
+		await waitFor(() => {
+			screen.getByTestId('editSave').click();
+		});
+
+		expect(spyOnPostComment).toBeCalledWith(100, 'reply', 101);
+	});
+
+	it('Can load more replies', async () => {
+		const spyOnGetComments = jest.spyOn(
+			DigitalSalesRoomService,
+			'getComments'
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				!url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 101,
+						text: 'Comment 1',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 1,
+			}
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 102,
+						text: 'Reply Comment',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 2,
+			}
+		);
+
+		renderComponent(100);
+
+		expect(spyOnGetComments).toBeCalledTimes(1);
+		expect(spyOnGetComments).toBeCalledWith(100, 1);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('showRepliesButton')).toBeInTheDocument();
+		});
+		screen.getByTestId('showRepliesButton').click();
+
+		await waitFor(() => {
+			expect(spyOnGetComments).toBeCalledWith(100, 1, 5, 101);
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Reply Comment')).toBeInTheDocument();
+		});
+
+		expect(screen.getByTestId('showMoreRepliesButton')).toBeInTheDocument();
+
+		await waitFor(() => {
+			screen.getByTestId('showMoreRepliesButton').click();
+		});
+
+		expect(spyOnGetComments).toBeCalledWith(100, 2, 5, 101);
+	});
+
+	it('Can delete reply', async () => {
+		const spyOnGetComments = jest.spyOn(
+			DigitalSalesRoomService,
+			'getComments'
+		);
+
+		const spyOnDeleteComment = jest.spyOn(
+			DigitalSalesRoomService,
+			'deleteDigitalSalesRoomComment'
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				!url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 101,
+						text: 'Comment 1',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 1,
+			}
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 103,
+						text: 'Reply Comment',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 1,
+			}
+		);
+
+		renderComponent(100);
+
+		expect(spyOnGetComments).toBeCalledTimes(1);
+		expect(spyOnGetComments).toBeCalledWith(100, 1);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('showRepliesButton')).toBeInTheDocument();
+		});
+		screen.getByTestId('showRepliesButton').click();
+
+		await waitFor(() => {
+			expect(screen.getAllByTestId('comment-actions')).toHaveLength(2);
+		});
+
+		await waitFor(() => {
+			const article = screen
+				.getByText('Reply Comment')
+				.closest('article');
+			within(article!).getByTestId('comment-actions').click();
+		});
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole('menuitem', {name: /delete/i})
+			).toBeInTheDocument();
+		});
+
+		await waitFor(() => {
+			screen.getByRole('menuitem', {name: /delete/i}).click();
+		});
+
+		expect(spyOnDeleteComment).toBeCalledWith(100, 103);
+		expect(spyOnGetComments).toBeCalledTimes(2);
+	});
+
+	it('can edit reply ', async () => {
+		const spyOnGetComments = jest.spyOn(
+			DigitalSalesRoomService,
+			'getComments'
+		);
+		const spyOnPatchComment = jest.spyOn(
+			DigitalSalesRoomService,
+			'patchDigitalSalesRoomComment'
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				!url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 101,
+						text: 'Comment 1',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 1,
+			}
+		);
+
+		fetchMock.get(
+			(url: string) =>
+				url.includes('/headless-digital-sales-room/') &&
+				url.includes('comments') &&
+				url.includes('parentCommentId'),
+			{
+				items: [
+					{
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date(),
+						id: 103,
+						text: 'Reply Comment',
+						numberOfComments: 1,
+					},
+				],
+				lastPage: 1,
+			}
+		);
+
+		fetchMock.patch(
+			/headless-digital-sales-room\/.*\/digital-sales-rooms\/.*\/comments.*/i,
+			(_: any, options: any) => {
+				const body = JSON.parse(options?.body as string);
+
+				if (body.text === 'edited reply') {
+					return {
+						creator: {
+							id: 102,
+							name: 'Author 1',
+						},
+						dateCreated: new Date().toISOString(),
+						id: 103,
+						text: 'edited reply',
+					};
+				}
+
+				return {
+					body: {error: 'Unexpected payload'},
+					status: 400,
+				};
+			}
+		);
+
+		renderComponent(100);
+
+		expect(spyOnGetComments).toBeCalledTimes(2);
+		expect(spyOnGetComments).toBeCalledWith(100, 1);
+
+		await waitFor(() => {
+			screen.getByTestId('showRepliesButton').click();
+		});
+
+		await waitFor(() => {
+			const article = screen
+				.getByText('Reply Comment')
+				.closest('article');
+			within(article!).getByTestId('comment-actions').click();
+		});
+
+		await waitFor(() => {
+			screen.getByRole('menuitem', {name: /edit/i}).click();
+		});
+
+		await setFieldValue(
+			screen.getByTestId('editCommentTextarea'),
+			'edited reply'
+		);
+
+		await waitFor(() => {
+			screen.getByTestId('editSave').click();
+		});
+
+		expect(spyOnPatchComment).toBeCalledWith(103, 100, 'edited reply');
+		await waitFor(() => {
+			expect(
+				screen.queryByTestId('editCommentTextarea')
+			).not.toBeInTheDocument();
+			expect(screen.getByText('edited reply')).toBeInTheDocument();
 		});
 	});
 });
