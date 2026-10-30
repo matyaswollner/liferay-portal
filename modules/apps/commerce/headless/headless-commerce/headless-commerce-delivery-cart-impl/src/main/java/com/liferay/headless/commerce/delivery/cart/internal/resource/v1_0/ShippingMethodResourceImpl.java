@@ -14,13 +14,11 @@ import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceShippingEngine;
 import com.liferay.commerce.model.CommerceShippingMethod;
 import com.liferay.commerce.model.CommerceShippingOption;
-import com.liferay.commerce.order.CommerceOrderHttpHelper;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.commerce.service.CommerceOrderService;
 import com.liferay.commerce.service.CommerceShippingMethodLocalService;
 import com.liferay.commerce.util.CommerceShippingEngineRegistry;
-import com.liferay.commerce.util.GuestCommerceOrderUtil;
 import com.liferay.commerce.util.comparator.CommerceShippingOptionPriorityComparator;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.ShippingMethod;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.ShippingOption;
@@ -60,9 +58,6 @@ public class ShippingMethodResourceImpl extends BaseShippingMethodResourceImpl {
 					externalReferenceCode);
 		}
 
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
 		CommerceAddress shippingCommerceAddress =
 			commerceOrder.getShippingAddress();
 
@@ -90,9 +85,6 @@ public class ShippingMethodResourceImpl extends BaseShippingMethodResourceImpl {
 
 		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
 			cartId);
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
 
 		CommerceAddress shippingCommerceAddress =
 			commerceOrder.getShippingAddress();
@@ -189,9 +181,6 @@ public class ShippingMethodResourceImpl extends BaseShippingMethodResourceImpl {
 
 	@Reference
 	private CommerceContextFactory _commerceContextFactory;
-
-	@Reference
-	private CommerceOrderHttpHelper _commerceOrderHttpHelper;
 
 	@Reference
 	private CommerceOrderService _commerceOrderService;

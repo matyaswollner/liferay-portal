@@ -14,14 +14,12 @@ import com.liferay.commerce.exception.NoSuchOrderItemException;
 import com.liferay.commerce.model.CommerceAddress;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderItem;
-import com.liferay.commerce.order.CommerceOrderHttpHelper;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.service.CPInstanceService;
 import com.liferay.commerce.service.CommerceAddressService;
 import com.liferay.commerce.service.CommerceOrderItemService;
 import com.liferay.commerce.service.CommerceOrderService;
 import com.liferay.commerce.util.CommerceChannelConfigurationUtil;
-import com.liferay.commerce.util.GuestCommerceOrderUtil;
 import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.headless.commerce.core.util.DateConfig;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.Cart;
@@ -78,9 +76,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 
 		CommerceOrder commerceOrder = commerceOrderItem.getCommerceOrder();
 
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
 		CommerceContext commerceContext = _commerceContextFactory.create(
 			commerceOrder.getCommerceAccountId(), commerceOrder.getGroupId(),
 			null, commerceOrder.getCommerceOrderId(),
@@ -125,9 +120,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 					externalReferenceCode);
 		}
 
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
 		return SearchUtil.search(
 			null, booleanQuery -> booleanQuery.getPreBooleanFilter(), null,
 			CommerceOrderItem.class.getName(), search, pagination,
@@ -152,9 +144,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 			_commerceOrderItemService.getCommerceOrderItem(cartItemId);
 
 		CommerceOrder commerceOrder = commerceOrderItem.getCommerceOrder();
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
 
 		return _toCartItem(
 			commerceOrder.getCommerceAccountId(), commerceOrderItem);
@@ -192,9 +181,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 
 		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
 			cartId);
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
 
 		return SearchUtil.search(
 			null, booleanQuery -> booleanQuery.getPreBooleanFilter(), null,
@@ -261,9 +247,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 					externalReferenceCode);
 		}
 
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
 		return _toCartItem(
 			commerceOrder.getCommerceAccountId(),
 			_updateCartItem(cartItem, commerceOrder));
@@ -275,9 +258,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 
 		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
 			cartId);
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
 
 		return _toCartItem(
 			commerceOrder.getCommerceAccountId(),
@@ -292,9 +272,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 			_commerceOrderItemService.getCommerceOrderItem(cartItemId);
 
 		CommerceOrder commerceOrder = commerceOrderItem.getCommerceOrder();
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
 
 		String options = GetterUtil.getString(cartItem.getOptions());
 
@@ -558,9 +535,6 @@ public class CartItemResourceImpl extends BaseCartItemResourceImpl {
 
 	@Reference
 	private CommerceContextFactory _commerceContextFactory;
-
-	@Reference
-	private CommerceOrderHttpHelper _commerceOrderHttpHelper;
 
 	@Reference
 	private CommerceOrderItemService _commerceOrderItemService;

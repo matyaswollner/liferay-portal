@@ -9,7 +9,6 @@ import com.liferay.commerce.exception.NoSuchOrderException;
 import com.liferay.commerce.model.CommerceAddress;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderType;
-import com.liferay.commerce.order.CommerceOrderHttpHelper;
 import com.liferay.commerce.payment.integration.CommercePaymentIntegration;
 import com.liferay.commerce.payment.integration.CommercePaymentIntegrationRegistry;
 import com.liferay.commerce.payment.method.CommercePaymentMethod;
@@ -20,7 +19,6 @@ import com.liferay.commerce.payment.service.CommercePaymentMethodGroupRelLocalSe
 import com.liferay.commerce.payment.service.CommercePaymentMethodGroupRelQualifierLocalService;
 import com.liferay.commerce.payment.util.comparator.CommercePaymentMethodPriorityComparator;
 import com.liferay.commerce.service.CommerceOrderService;
-import com.liferay.commerce.util.GuestCommerceOrderUtil;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.PaymentMethod;
 import com.liferay.headless.commerce.delivery.cart.resource.v1_0.PaymentMethodResource;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
@@ -62,9 +60,6 @@ public class PaymentMethodResourceImpl extends BasePaymentMethodResourceImpl {
 					externalReferenceCode);
 		}
 
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
 		return _getPaymentMethodPage(commerceOrder);
 	}
 
@@ -72,13 +67,8 @@ public class PaymentMethodResourceImpl extends BasePaymentMethodResourceImpl {
 	public Page<PaymentMethod> getCartPaymentMethodsPage(Long cartId)
 		throws Exception {
 
-		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
-			cartId);
-
-		GuestCommerceOrderUtil.checkGuestCommerceOrder(
-			commerceOrder, _commerceOrderHttpHelper, contextHttpServletRequest);
-
-		return _getPaymentMethodPage(commerceOrder);
+		return _getPaymentMethodPage(
+			_commerceOrderService.getCommerceOrder(cartId));
 	}
 
 	private List<CommercePaymentMethodGroupRel>
@@ -213,9 +203,6 @@ public class PaymentMethodResourceImpl extends BasePaymentMethodResourceImpl {
 			}
 		};
 	}
-
-	@Reference
-	private CommerceOrderHttpHelper _commerceOrderHttpHelper;
 
 	@Reference
 	private CommerceOrderService _commerceOrderService;
