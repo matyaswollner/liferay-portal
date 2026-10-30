@@ -50,6 +50,7 @@ import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeDefinitionLocalService;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
 import com.liferay.petra.function.UnsafeConsumer;
+import com.liferay.petra.function.UnsafeRunnable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
@@ -83,6 +84,7 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
@@ -756,6 +758,18 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 		Assert.assertEquals(expectedStatus, problem.getStatus());
 	}
 
+	private void _assertProblemException(
+			String expectedStatus, UnsafeRunnable<Exception> unsafeRunnable)
+		throws Exception {
+
+		Problem.ProblemException problemException = Assert.assertThrows(
+			Problem.ProblemException.class, unsafeRunnable::run);
+
+		Problem problem = problemException.getProblem();
+
+		Assert.assertEquals(expectedStatus, problem.getStatus());
+	}
+
 	private Cart _createCart() throws Exception {
 		CommerceOrder commerceOrder = _addCommerceOrder();
 
@@ -802,11 +816,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 			CommerceOrder commerceOrder, String commerceOrderUUID)
 		throws Exception {
 
-		User user = UserTestUtil.getAdminUser(testCompany.getCompanyId());
-
 		CartResource.Builder builder = CartResource.builder(
-		).authentication(
-			user.getEmailAddress(), PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
 			testCompany.getVirtualHostname(),
 			PortalUtil.getPortalServerPort(false), "http"
@@ -824,7 +834,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 					RandomTestUtil.randomString()));
 		}
 
-		if (commerceOrderUUID != null) {
+		if (Validator.isNotNull(commerceOrderUUID)) {
 			builder.header("Commerce-Cart-UUID", commerceOrderUUID);
 		}
 
@@ -881,12 +891,30 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 				testCompany.getKeyObj(),
 				String.valueOf(commerceOrder.getCommerceOrderId())));
 
-		CartResource cartResource = _getCartResource(commerceOrder, null);
+		User user = UserTestUtil.getAdminUser(testCompany.getCompanyId());
 
-		String paymentURL = cartResource.getCartPaymentURL(
+		CartResource cartResource1 = CartResource.builder(
+		).authentication(
+			user.getEmailAddress(), PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		String paymentURL = cartResource1.getCartPaymentURL(
 			commerceOrder.getCommerceOrderId(), RandomTestUtil.randomString());
 
 		Assert.assertTrue(paymentURL.contains("guestToken=" + guestToken));
+
+		CartResource cartResource2 = _getCartResource(commerceOrder, null);
+
+		Assert.assertThrows(
+			Problem.ProblemException.class,
+			() -> cartResource2.getCartPaymentURL(
+				commerceOrder.getCommerceOrderId(),
+				RandomTestUtil.randomString()));
 	}
 
 	private void _testGetCartWithGuestAccountEntry() throws Exception {
@@ -900,13 +928,9 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 
 		CommerceOrder commerceOrder2 = _addGuestCommerceOrder();
 
-		Problem.ProblemException problemException = Assert.assertThrows(
-			Problem.ProblemException.class,
+		_assertProblemException(
+			"NOT_FOUND",
 			() -> cartResource1.getCart(commerceOrder2.getCommerceOrderId()));
-
-		Problem problem = problemException.getProblem();
-
-		Assert.assertEquals("NOT_FOUND", problem.getStatus());
 
 		CartResource cartResource2 = _getCartResource(
 			null, commerceOrder2.getUuid());
@@ -918,13 +942,9 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 		CartResource cartResource3 = _getCartResource(
 			commerceOrder1, commerceOrder2.getUuid());
 
-		problemException = Assert.assertThrows(
-			Problem.ProblemException.class,
+		_assertProblemException(
+			"NOT_FOUND",
 			() -> cartResource3.getCart(commerceOrder1.getCommerceOrderId()));
-
-		problem = problemException.getProblem();
-
-		Assert.assertEquals("NOT_FOUND", problem.getStatus());
 	}
 
 	private void _testGetCartWithOffendedOrderRule() throws Exception {
@@ -1461,7 +1481,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 		CommerceTestUtil.runWithGuestBrowsingDisabled(
 			_commerceChannel.getGroupId(),
 			() -> {
-				CartResource guestCartResource = CartResource.builder(
+				CartResource cartResource1 = CartResource.builder(
 				).endpoint(
 					testCompany.getVirtualHostname(),
 					PortalUtil.getPortalServerPort(false), "http"
@@ -1471,7 +1491,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 
 				Problem.ProblemException problemException = Assert.assertThrows(
 					Problem.ProblemException.class,
-					() -> guestCartResource.postChannelCart(
+					() -> cartResource1.postChannelCart(
 						_commerceChannel.getCommerceChannelId(),
 						_randomGuestCart()));
 
@@ -1487,7 +1507,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 		CommerceTestUtil.runWithGuestCheckoutDisabledOnB2BChannel(
 			_commerceChannel.getGroupId(),
 			() -> {
-				CartResource guestCartResource = CartResource.builder(
+				CartResource cartResource1 = CartResource.builder(
 				).endpoint(
 					testCompany.getVirtualHostname(),
 					PortalUtil.getPortalServerPort(false), "http"
@@ -1497,7 +1517,7 @@ public class CartResourceTest extends BaseCartResourceTestCase {
 
 				Problem.ProblemException problemException = Assert.assertThrows(
 					Problem.ProblemException.class,
-					() -> guestCartResource.postChannelCart(
+					() -> cartResource1.postChannelCart(
 						_commerceChannel.getCommerceChannelId(),
 						_randomGuestCart()));
 

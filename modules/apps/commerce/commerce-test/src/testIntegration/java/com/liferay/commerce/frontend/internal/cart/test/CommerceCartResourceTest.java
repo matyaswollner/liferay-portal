@@ -81,12 +81,12 @@ public class CommerceCartResourceTest {
 				_commerceCurrency.getCode(), LocaleUtil.US.getDisplayLanguage(),
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
-		_cpInstance = CPTestUtil.addCPInstanceFromCatalog(
-			commerceCatalog.getGroupId());
-
 		CommercePriceList commercePriceList =
 			_commercePriceListLocalService.fetchCatalogBaseCommercePriceList(
 				commerceCatalog.getGroupId());
+
+		_cpInstance = CPTestUtil.addCPInstanceFromCatalog(
+			commerceCatalog.getGroupId());
 
 		CPDefinition cpDefinition = _cpInstance.getCPDefinition();
 
@@ -112,39 +112,54 @@ public class CommerceCartResourceTest {
 
 	@Test
 	public void testUpdateOrderItem() throws Exception {
-		CommerceOrder commerceOrder =
-			_commerceOrderLocalService.addCommerceOrder(
-				TestPropsValues.getUserId(), _commerceChannel.getGroupId(),
-				AccountConstants.ACCOUNT_ENTRY_ID_GUEST,
-				_commerceCurrency.getCode(), 0);
-
+		CommerceOrder commerceOrder1 = _addGuestCommerceOrder();
 		Cookie[] cookies = _getCookies();
 
-		_http.URLtoString(_getOptions(commerceOrder, cookies));
+		_http.URLtoString(_createOptions(commerceOrder1, cookies));
 
 		Assert.assertEquals(
 			0,
 			_commerceOrderItemLocalService.getCommerceOrderItemsCount(
-				commerceOrder.getCommerceOrderId()));
+				commerceOrder1.getCommerceOrderId()));
 
 		_http.URLtoString(
-			_getOptions(
-				commerceOrder,
+			_createOptions(
+				commerceOrder1,
 				ArrayUtil.append(
 					cookies,
-					_getCookie(
+					_createCookie(
 						_commerceOrderHttpHelper.getCookieName(
-							commerceOrder.getGroupId()),
-						commerceOrder.getUuid() + StringPool.PIPE +
+							commerceOrder1.getGroupId()),
+						commerceOrder1.getUuid() + StringPool.PIPE +
 							RandomTestUtil.randomString()))));
 
 		Assert.assertEquals(
 			1,
 			_commerceOrderItemLocalService.getCommerceOrderItemsCount(
-				commerceOrder.getCommerceOrderId()));
+				commerceOrder1.getCommerceOrderId()));
+
+		CommerceOrder commerceOrder2 = _addGuestCommerceOrder();
+
+		Http.Options options = _createOptions(commerceOrder2, cookies);
+
+		options.addHeader("Commerce-Cart-UUID", commerceOrder2.getUuid());
+
+		_http.URLtoString(options);
+
+		Assert.assertEquals(
+			1,
+			_commerceOrderItemLocalService.getCommerceOrderItemsCount(
+				commerceOrder2.getCommerceOrderId()));
 	}
 
-	private Cookie _getCookie(String name, String value) {
+	private CommerceOrder _addGuestCommerceOrder() throws Exception {
+		return _commerceOrderLocalService.addCommerceOrder(
+			TestPropsValues.getUserId(), _commerceChannel.getGroupId(),
+			AccountConstants.ACCOUNT_ENTRY_ID_GUEST,
+			_commerceCurrency.getCode(), 0);
+	}
+
+	private Cookie _createCookie(String name, String value) {
 		Cookie cookie = new Cookie(name, value);
 
 		cookie.setDomain("localhost");
@@ -153,26 +168,7 @@ public class CommerceCartResourceTest {
 		return cookie;
 	}
 
-	private Cookie[] _getCookies() throws Exception {
-		Http.Options options = new Http.Options();
-
-		options.setCookies(
-			new Cookie[] {
-				_getCookie(
-					RandomTestUtil.randomString(),
-					RandomTestUtil.randomString())
-			});
-		options.setLocation(_getPortalURL());
-
-		_http.URLtoString(options);
-
-		return TransformUtil.transform(
-			_http.getCookies(),
-			cookie -> _getCookie(cookie.getName(), cookie.getValue()),
-			Cookie.class);
-	}
-
-	private Http.Options _getOptions(
+	private Http.Options _createOptions(
 		CommerceOrder commerceOrder, Cookie[] cookies) {
 
 		Http.Options options = new Http.Options();
@@ -193,6 +189,25 @@ public class CommerceCartResourceTest {
 		options.setPost(true);
 
 		return options;
+	}
+
+	private Cookie[] _getCookies() throws Exception {
+		Http.Options options = new Http.Options();
+
+		options.setCookies(
+			new Cookie[] {
+				_createCookie(
+					RandomTestUtil.randomString(),
+					RandomTestUtil.randomString())
+			});
+		options.setLocation(_getPortalURL());
+
+		_http.URLtoString(options);
+
+		return TransformUtil.transform(
+			_http.getCookies(),
+			cookie -> _createCookie(cookie.getName(), cookie.getValue()),
+			Cookie.class);
 	}
 
 	private String _getPortalURL() {

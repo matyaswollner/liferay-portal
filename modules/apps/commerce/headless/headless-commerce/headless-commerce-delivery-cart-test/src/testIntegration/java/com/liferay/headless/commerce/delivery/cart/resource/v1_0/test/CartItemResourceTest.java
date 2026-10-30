@@ -57,7 +57,7 @@ import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.test.rule.Inject;
 
 import java.math.BigDecimal;
@@ -118,10 +118,26 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 			serviceContext);
 	}
 
-	@Ignore
 	@Override
 	@Test
 	public void testDeleteCartItem() throws Exception {
+		CommerceOrder commerceOrder = _addGuestCommerceOrder();
+
+		CartItemResource cartItemResource1 = _getCartItemResource(
+			commerceOrder, null);
+
+		CartItem postCartItem = cartItemResource1.postCartItem(
+			commerceOrder.getCommerceOrderId(), randomCartItem());
+
+		CartItemResource cartItemResource2 = _getCartItemResource(
+			_addGuestCommerceOrder(), null);
+
+		_assertProblemException(
+			postCartItem, "FORBIDDEN",
+			cartItem -> cartItemResource2.deleteCartItem(cartItem.getId()));
+
+		assertEquals(
+			postCartItem, cartItemResource1.getCartItem(postCartItem.getId()));
 	}
 
 	@Override
@@ -487,27 +503,33 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 		).build();
 	}
 
-	private CartItemResource _getCartItemResource(CommerceOrder commerceOrder)
+	private CartItemResource _getCartItemResource(
+			CommerceOrder commerceOrder, String commerceOrderUUID)
 		throws Exception {
 
-		User user = UserTestUtil.getAdminUser(testCompany.getCompanyId());
-
-		return CartItemResource.builder(
-		).authentication(
-			user.getEmailAddress(), PropsValues.DEFAULT_ADMIN_PASSWORD
+		CartItemResource.Builder builder = CartItemResource.builder(
 		).endpoint(
 			testCompany.getVirtualHostname(),
 			PortalUtil.getPortalServerPort(false), "http"
-		).header(
-			HttpHeaders.COOKIE,
-			StringBundler.concat(
-				_commerceOrderHttpHelper.getCookieName(
-					commerceOrder.getGroupId()),
-				StringPool.EQUAL, commerceOrder.getUuid(), StringPool.PIPE,
-				RandomTestUtil.randomString())
 		).locale(
 			LocaleUtil.getDefault()
-		).build();
+		);
+
+		if (commerceOrder != null) {
+			builder.header(
+				HttpHeaders.COOKIE,
+				StringBundler.concat(
+					_commerceOrderHttpHelper.getCookieName(
+						commerceOrder.getGroupId()),
+					StringPool.EQUAL, commerceOrder.getUuid(), StringPool.PIPE,
+					RandomTestUtil.randomString()));
+		}
+
+		if (Validator.isNotNull(commerceOrderUUID)) {
+			builder.header("Commerce-Cart-UUID", commerceOrderUUID);
+		}
+
+		return builder.build();
 	}
 
 	private CartItem _randomCartItem(boolean priceOnApplication)
@@ -539,16 +561,16 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 		CommerceOrder commerceOrder = _addGuestCommerceOrder();
 
 		CartItemResource cartItemResource1 = _getCartItemResource(
-			commerceOrder);
+			commerceOrder, null);
 
 		CartItem postCartItem = cartItemResource1.postCartItem(
 			commerceOrder.getCommerceOrderId(), randomCartItem());
 
 		CartItemResource cartItemResource2 = _getCartItemResource(
-			_addGuestCommerceOrder());
+			_addGuestCommerceOrder(), null);
 
 		_assertProblemException(
-			postCartItem, "NOT_FOUND",
+			postCartItem, "403",
 			cartItem -> cartItemResource2.deleteCartItemByExternalReferenceCode(
 				cartItem.getExternalReferenceCode()));
 
@@ -695,16 +717,16 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 		CommerceOrder commerceOrder = _addGuestCommerceOrder();
 
 		CartItemResource cartItemResource1 = _getCartItemResource(
-			commerceOrder);
+			commerceOrder, null);
 
 		CartItem postCartItem = cartItemResource1.postCartItem(
 			commerceOrder.getCommerceOrderId(), randomCartItem());
 
 		CartItemResource cartItemResource2 = _getCartItemResource(
-			_addGuestCommerceOrder());
+			_addGuestCommerceOrder(), null);
 
 		_assertProblemException(
-			randomCartItem(), "NOT_FOUND",
+			randomCartItem(), "FORBIDDEN",
 			patchCartItem -> cartItemResource2.patchCartItem(
 				postCartItem.getId(), patchCartItem));
 
@@ -794,7 +816,7 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 				CommerceOrder commerceOrder = _addGuestCommerceOrder();
 
 				CartItemResource cartItemResource = _getCartItemResource(
-					commerceOrder);
+					commerceOrder, null);
 
 				_assertProblemException(
 					randomCartItem(), "BAD_REQUEST",
@@ -806,22 +828,34 @@ public class CartItemResourceTest extends BaseCartItemResourceTestCase {
 	private void _testPostCartItemWithGuestAccountEntry() throws Exception {
 		CommerceOrder commerceOrder1 = _addGuestCommerceOrder();
 
-		CartItemResource cartItemResource = _getCartItemResource(
-			commerceOrder1);
+		CartItemResource cartItemResource1 = _getCartItemResource(
+			commerceOrder1, null);
 
-		CartItem randomCartItem = randomCartItem();
+		CartItem cartItem1 = randomCartItem();
 
 		assertEquals(
-			randomCartItem,
-			cartItemResource.postCartItem(
-				commerceOrder1.getCommerceOrderId(), randomCartItem));
+			cartItem1,
+			cartItemResource1.postCartItem(
+				commerceOrder1.getCommerceOrderId(), cartItem1));
+
+		CartItem cartItem2 = randomCartItem();
 
 		CommerceOrder commerceOrder2 = _addGuestCommerceOrder();
 
+		CartItemResource cartItemResource2 = _getCartItemResource(
+			null, commerceOrder2.getUuid());
+
+		assertEquals(
+			cartItem2,
+			cartItemResource2.postCartItem(
+				commerceOrder2.getCommerceOrderId(), cartItem2));
+
+		CommerceOrder commerceOrder3 = _addGuestCommerceOrder();
+
 		_assertProblemException(
-			randomCartItem(), "NOT_FOUND",
-			postCartItem -> cartItemResource.postCartItem(
-				commerceOrder2.getCommerceOrderId(), postCartItem));
+			randomCartItem(), "FORBIDDEN",
+			postCartItem -> cartItemResource1.postCartItem(
+				commerceOrder3.getCommerceOrderId(), postCartItem));
 	}
 
 	private void _testPutCartItemWithInvalidShippingAddress() throws Exception {
